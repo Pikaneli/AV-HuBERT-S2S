@@ -1,17 +1,16 @@
+from typing import Dict, List, Optional, Tuple, Any
+from torch import nn
 import torch
 import numpy as np
-from torch import nn
-from typing import Dict, List, Optional, Tuple, Any
 from transformers import PreTrainedModel, Wav2Vec2Config
-from transformers.models.wav2vec2.modeling_wav2vec2 import (
-    Wav2Vec2Encoder, Wav2Vec2EncoderLayer, 
-    is_deepspeed_zero3_enabled
-)
+from transformers.models.wav2vec2.modeling_wav2vec2 import Wav2Vec2Encoder, is_deepspeed_zero3_enabled, Wav2Vec2EncoderLayer, Wav2Vec2FeedForward, WAV2VEC2_ATTENTION_CLASSES, ACT2FN, Wav2Vec2PositionalConvEmbedding
 from copy import deepcopy
-from transformers.modeling_outputs import BaseModelOutput
+
 from .resnet import ResEncoder
 from .utils import compute_mask_indices
-
+from transformers.modeling_outputs import (
+    BaseModelOutput,
+)
 
 class GradMultiply(torch.autograd.Function):
     @staticmethod
@@ -25,6 +24,10 @@ class GradMultiply(torch.autograd.Function):
         return grad * ctx.scale, None
 
 def LayerNorm(normalized_shape, eps=1e-5, elementwise_affine=True, export=False):
+    # if torch.jit.is_scripting() or torch.jit.is_tracing():
+    #     export = True
+    # if not export and torch.cuda.is_available() and has_fused_layernorm:
+    #     return FusedLayerNorm(normalized_shape, eps, elementwise_affine)
     return torch.nn.LayerNorm(normalized_shape, eps, elementwise_affine)
 
 class SubModel(nn.Module):
@@ -32,21 +35,25 @@ class SubModel(nn.Module):
         super().__init__()
         self.resnet = resnet
         self.proj = nn.Linear(input_dim, cfg.encoder_embed_dim)
+        # self.encoder = TransformerEncoder(cfg) if cfg.encoder_layers > 0 else None
 
     def forward(self, x):
         if self.resnet is not None:
             x = self.resnet(x)
         x = self.proj(x.transpose(1, 2))
+        # if self.encoder is not None:
+        #     x = self.encoder(x)[0].transpose(1, 2)
+        # else:
         x = x.transpose(1, 2)
         return x
 
 class AVHubertModel(PreTrainedModel):
     config_class = Wav2Vec2Config
     base_model_prefix = "avhubert"
-    # main_input_name = "input_values"
-    # supports_gradient_checkpointing = True
-    # _supports_flash_attn_2 = True
-    # _supports_sdpa = True
+    main_input_name = "input_values"
+    supports_gradient_checkpointing = True
+    _supports_flash_attn_2 = True
+    _supports_sdpa = True
     
     def __init__(
         self,
@@ -108,6 +115,9 @@ class AVHubertModel(PreTrainedModel):
             torch.FloatTensor(cfg.audio_feat_dim).uniform_() if self.masking_type == 'input' else torch.FloatTensor(cfg.encoder_embed_dim).uniform_()
         )
 
+        # self.encoder = TransformerEncoder(cfg)
+        
+        # HFWav2Vec2Config = Wav2Vec2Config.from_json_file('/export/data1/data/binhnguyen/workspace/av_hubert_hf/encoder_hug.json')
         self.encoder = AVHubertEncoder(cfg)
         
         self.layer_norm = LayerNorm(self.embed)
@@ -495,10 +505,29 @@ class AVHubertModel(PreTrainedModel):
         logits = logits.transpose(0, 1)  # (num_x, num_cls+1)
         return logits
 
+
+class AVWav2Vec2PositionalConvEmbedding(Wav2Vec2PositionalConvEmbedding):
+    def __init__(self, config):
+        super().__init__(config)
+        self.conv = nn.Conv1d(
+            config.encoder_hidden_size,
+            config.encoder_hidden_size,
+            kernel_size=config.num_conv_pos_embeddings,
+            padding=config.num_conv_pos_embeddings // 2,
+            groups=config.num_conv_pos_embedding_groups,
+        )
+        weight_norm = nn.utils.weight_norm
+        if hasattr(nn.utils.parametrizations, "weight_norm"):
+            weight_norm = nn.utils.parametrizations.weight_norm
+        self.conv = weight_norm(self.conv, name="weight", dim=2)
+
 class AVHubertEncoder(Wav2Vec2Encoder):
     def __init__(self, config):
         super().__init__(config)
         self.layers = nn.ModuleList([AVHubertEncoderLayer(config) for _ in range(config.num_hidden_layers)])
+        self.pos_conv_embed = AVWav2Vec2PositionalConvEmbedding(config)
+        self.layer_norm = nn.LayerNorm(config.encoder_hidden_size, eps=config.layer_norm_eps)
+        
     def forward(
         self,
         hidden_states: torch.tensor,
@@ -574,7 +603,36 @@ class AVHubertEncoder(Wav2Vec2Encoder):
             attentions=all_self_attentions,
         )
         
+class AVWav2Vec2FeedForward(Wav2Vec2FeedForward):
+    def __init__(self, config):
+        super().__init__(config)
+        self.intermediate_dropout = nn.Dropout(config.activation_dropout)
+
+        self.intermediate_dense = nn.Linear(config.encoder_hidden_size, config.intermediate_size)
+        if isinstance(config.hidden_act, str):
+            self.intermediate_act_fn = ACT2FN[config.hidden_act]
+        else:
+            self.intermediate_act_fn = config.hidden_act
+
+        self.output_dense = nn.Linear(config.intermediate_size, config.encoder_hidden_size)
+        self.output_dropout = nn.Dropout(config.hidden_dropout)
+        
 class AVHubertEncoderLayer(Wav2Vec2EncoderLayer):
+    def __init__(self, config):
+        super().__init__(config)
+        self.attention = WAV2VEC2_ATTENTION_CLASSES[config._attn_implementation](
+            embed_dim=config.encoder_hidden_size,
+            num_heads=config.num_attention_heads,
+            dropout=config.attention_dropout,
+            is_decoder=False,
+        )
+
+        self.dropout = nn.Dropout(config.hidden_dropout)
+        self.layer_norm = nn.LayerNorm(config.encoder_hidden_size, eps=config.layer_norm_eps)
+        self.feed_forward = AVWav2Vec2FeedForward(config)
+        self.final_layer_norm = nn.LayerNorm(config.encoder_hidden_size, eps=config.layer_norm_eps)
+    
+    
     def forward(self, hidden_states, attention_mask=None, output_attentions=False):
         attn_residual = hidden_states
         hidden_states = self.layer_norm(hidden_states)
