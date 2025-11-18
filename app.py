@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 
 import gradio as gr
 from src.dataset.video_to_audio_lips import process_raw_data_for_avsr
@@ -12,8 +12,8 @@ import random
 from collections import OrderedDict, defaultdict
 from pathlib import Path
 
-model = AV2TextForConditionalGeneration.from_pretrained('nguyenvulebinh/AV-HuBERT', cache_dir='./model-bin')
-tokenizer = Speech2TextTokenizer.from_pretrained('nguyenvulebinh/AV-HuBERT', cache_dir='./model-bin')
+model = AV2TextForConditionalGeneration.from_pretrained('nguyenvulebinh/AV-HuBERT-MuAViC-en', cache_dir='./model-bin',ignore_mismatched_sizes=False,local_files_only=True)
+tokenizer = Speech2TextTokenizer.from_pretrained('nguyenvulebinh/AV-HuBERT-MuAViC-en', cache_dir='./model-bin',ignore_mismatched_sizes=False,local_files_only=True)
 
 if torch.cuda.is_available():
     model = model.cuda().eval()

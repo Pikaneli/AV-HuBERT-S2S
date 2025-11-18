@@ -1,5 +1,5 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 from src.model.avhubert2text import AV2TextForConditionalGeneration
 from src.dataset.load_data import load_feature
 from transformers import Speech2TextTokenizer
@@ -9,7 +9,7 @@ if __name__ == "__main__":
     
     # Choose language to run example
     AVAILABEL_LANGUAGES = ["ar", "de", "el", "en", "es", "fr", "it", "pt", "ru", "multilingual"]
-    language = "ru"
+    language = "en"
     assert language in AVAILABEL_LANGUAGES, f"Language {language} is not available, please choose one of {AVAILABEL_LANGUAGES}"
     
     

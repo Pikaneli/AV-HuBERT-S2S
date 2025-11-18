@@ -1,3 +1,4 @@
+
 import os
 from ffmpy import FFmpeg
 import cv2
@@ -161,7 +162,7 @@ def crop_patch(
         )
     return sequence
 
-def load_needed_models_for_lip_movement(metadata_path=Path("./model-bin")):
+def load_needed_models_for_lip_movement(metadata_path=Path(r"C:\Pera\faks\AV-HuBERT-S2S\model-bin")):
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor(str(metadata_path/"shape_predictor_68_face_landmarks.dat"))
     mean_face_landmarks = np.load(metadata_path/"20words_mean_face.npy")
@@ -274,7 +275,7 @@ def extract_lip_movement(
         webcam_video,
         in_video_filepath,
         out_lip_filepath,
-        num_workers=10,
+        num_workers=1,
     ):
     # change video framerate to 25 and lower resolution for faster processing
     print("Adjust video framerate to 25")
@@ -475,7 +476,7 @@ def process_raw_data_for_avsr(input_file_path, noise_wav_file=None, noise_snr=No
     if not lip_video_filepath.exists():
         extract_lip_movement(
             norm_video_filepath, video_filepath, lip_video_filepath,
-            num_workers=min(os.cpu_count(), 5)
+            num_workers=1
         )
     else:
         print(f"Using existing lip movement video at {lip_video_filepath}")
