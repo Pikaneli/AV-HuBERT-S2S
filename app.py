@@ -93,6 +93,7 @@ if __name__ == "__main__":
         examples=[
             ["./example/video/s1_v2_c1.mp4", 10, "party"],
             ["./example/video/s2_v1_c1.mp4", 0, "party"],
+            ["./example/video/00001.mp4", -5, "music"],
         ],
     )
 
