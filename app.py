@@ -78,7 +78,7 @@ if __name__ == "__main__":
         [
             gr.Video(),
             gr.Slider(
-                label="SNR", minimum=-20, maximum=20, step=5, value=20
+                label="SNR", minimum=-20, maximum=20, step=5, value=0
             ),
             gr.Radio(
                 label="Noise", choices=list(NOISE.keys()),
