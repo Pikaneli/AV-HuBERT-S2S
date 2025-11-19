@@ -88,4 +88,3 @@ python src/dataset/video_to_audio_lips.py
         <th><a href="https://huggingface.co/nguyenvulebinh/AV-HuBERT-MuAViC-en">Checkpoint-EN</a></th>
     </tr>
 </table>
-```
