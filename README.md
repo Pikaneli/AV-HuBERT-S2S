@@ -5,14 +5,6 @@
 This repository contains a Huggingface implementation of the AV-HuBERT (Audio-Visual Hidden Unit BERT) model, specifically trained and tested on the MuAViC (Multilingual Audio-Visual Corpus) dataset. AV-HuBERT is a self-supervised model designed for audio-visual speech recognition, leveraging both audio and visual modalities to achieve robust performance, especially in noisy environments.
 
 
-Key features of this repository include:
-
-- Pre-trained Models: Access pre-trained AV-HuBERT models fine-tuned on the MuAViC dataset. The pre-trained model been exported from [MuAViC](https://github.com/facebookresearch/muavic) repository.
-
-- Inference scripts: Easily pipelines using Huggingface’s interface.
-
-- Data preprocessing scripts: Including normalize frame rate, extract lips and audio.
-
 ### Inference code
 
 ```sh
@@ -32,8 +24,8 @@ import torch
 
 if __name__ == "__main__":
     # Choose language to run example
-    AVAILABEL_LANGUAGES = ["ar", "de", "el", "en", "es", "fr", "it", "pt", "ru", "multilingual"]
-    language = "ru"
+    AVAILABEL_LANGUAGES = ["en"]
+    language = "en"
     assert language in AVAILABEL_LANGUAGES, f"Language {language} is not available, please choose one of {AVAILABEL_LANGUAGES}"
     
     
@@ -81,8 +73,6 @@ cd model-bin
 wget https://huggingface.co/nguyenvulebinh/AV-HuBERT/resolve/main/20words_mean_face.npy .
 wget https://huggingface.co/nguyenvulebinh/AV-HuBERT/resolve/main/shape_predictor_68_face_landmarks.dat .
 
-cp raw_video.mp4 ./example/ 
-
 python src/dataset/video_to_audio_lips.py
 ```
 
@@ -93,66 +83,9 @@ python src/dataset/video_to_audio_lips.py
         <th>Languages</th>
         <th>Huggingface</th>
     </tr>
-<tr>
-        <th>Arabic</th>
-        <th><a href="https://huggingface.co/nguyenvulebinh/AV-HuBERT-MuAViC-ar">Checkpoint-AR</a></th>
-    </tr> 
-    <tr>
-        <th>German</th>
-        <th><a href="https://huggingface.co/nguyenvulebinh/AV-HuBERT-MuAViC-de">Checkpoint-DE</a></th>
-    </tr>
-    <tr>
-        <th>Greek</th>
-        <th><a href="https://huggingface.co/nguyenvulebinh/AV-HuBERT-MuAViC-el">Checkpoint-EL</a></th>
-    </tr>
     <tr>
         <th>English</th>
         <th><a href="https://huggingface.co/nguyenvulebinh/AV-HuBERT-MuAViC-en">Checkpoint-EN</a></th>
     </tr>
-    <tr>
-        <th>Spanish</th>
-        <th><a href="https://huggingface.co/nguyenvulebinh/AV-HuBERT-MuAViC-es">Checkpoint-ES</a></th>
-    </tr>
-    <tr>
-        <th>French</th>
-        <th><a href="https://huggingface.co/nguyenvulebinh/AV-HuBERT-MuAViC-fr">Checkpoint-FR</a></th>
-    </tr>
-    <tr>
-        <th>Italian</th>
-        <th><a href="https://huggingface.co/nguyenvulebinh/AV-HuBERT-MuAViC-it">Checkpoint-IT</a></th>
-    </tr>
-    <tr>
-        <th>Portuguese</th>
-        <th><a href="https://huggingface.co/nguyenvulebinh/AV-HuBERT-MuAViC-pt">Checkpoint-PT</a></th>
-    </tr>
-    <tr>
-        <th>Russian</th>
-        <th><a href="https://huggingface.co/nguyenvulebinh/AV-HuBERT-MuAViC-ru">Checkpoint-RU</a></th>
-    </tr>
-    <tr>
-        <th>Multilingual</th>
-        <th><a href="https://huggingface.co/nguyenvulebinh/AV-HuBERT-MuAViC-multilingual">Checkpoint-ar_de_el_es_fr_it_pt_ru</a></th>
-    </tr>
 </table>
-
-
-## Acknowledgments
-
-**AV-HuBERT**: A significant portion of the codebase in this repository has been adapted from the original AV-HuBERT implementation.
-
-**MuAViC Repository**: We also gratefully acknowledge the creators of the MuAViC dataset and repository for providing the pre-trained models used in this project
-
-## License
-
-CC-BY-NC 4.0
-
-## Citation
-
-```bibtex
-@article{anwar2023muavic,
-  title={MuAViC: A Multilingual Audio-Visual Corpus for Robust Speech Recognition and Robust Speech-to-Text Translation},
-  author={Anwar, Mohamed and Shi, Bowen and Goswami, Vedanuj and Hsu, Wei-Ning and Pino, Juan and Wang, Changhan},
-  journal={arXiv preprint arXiv:2303.00628},
-  year={2023}
-}
 ```
