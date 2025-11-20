@@ -2,10 +2,10 @@ import csv
 from jiwer import wer, cer
 import pandas as pd
 
-GROUND_CSV = "ground_truth.csv"
-PRED_CSV = "predictions.csv"
+GROUND_CSV = "ground_truth2.csv"
+PRED_CSV = "predictions_noise.csv"
 
-OUTPUT_CSV = "wer_cer_results.csv"
+OUTPUT_CSV = "wer_cer_results_noise.csv"
 
 
 def load_column_from_csv(path, column_name):
@@ -47,8 +47,8 @@ if __name__ == "__main__":
 
     print("Loading CSV files...")
 
-    gt_list = load_column_from_csv(GROUND_CSV, "ground_truth")
-    pr_list = load_column_from_csv(PRED_CSV, "prediction")
+    gt_list = load_column_from_csv(GROUND_CSV, "ground_truth2")
+    pr_list = load_column_from_csv(PRED_CSV, "prediction_noise")
 
     if len(gt_list) != len(pr_list):
         raise ValueError("Ground truth and prediction list lengths do not match!")

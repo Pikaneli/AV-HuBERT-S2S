@@ -11,7 +11,7 @@ from src.dataset.load_data import load_feature
 # ---------------------------------------------------------
 
 VIDEO_ROOT = r"C:\Pera\faks\ucenje_iz_podataka\mvlrs_v1\video\test"
-AUDIO_ROOT = r"C:\Pera\faks\ucenje_iz_podataka\mvlrs_v1\audio\test"
+AUDIO_ROOT = r"C:\Pera\faks\AV-HuBERT-S2S\audio_noise"
 
 WRD_FILE = r"C:\Pera\faks\ucenje_iz_podataka\mvlrs_v1\fixed_tsv\test.wrd"  
 # <-- YOUR 1 FILE WITH MANY LINES
@@ -120,16 +120,16 @@ for idx, (video_path, audio_path, gt_text) in enumerate(zip(video_files, audio_f
 # SAVE CSV FILES
 # ---------------------------------------------------------
 
-with open("ground_truth.csv", "w", newline="", encoding="utf-8") as f:
+with open("ground_truth2.csv", "w", newline="", encoding="utf-8") as f:
     writer = csv.writer(f)
-    writer.writerow(["ground_truth"])
+    writer.writerow(["ground_truth2"])
     for line in ground_truth_list:
         writer.writerow([line])
 
-with open("predictions.csv", "w", newline="", encoding="utf-8") as f:
+with open("predictions_noise.csv", "w", newline="", encoding="utf-8") as f:
     writer = csv.writer(f)
-    writer.writerow(["prediction"])
+    writer.writerow(["prediction_noise"])
     for line in predicted_list:
         writer.writerow([line])
 
-print("✔ DONE — Saved ground_truth.csv and predictions.csv")
+print("✔ DONE — Saved ground_truth2.csv and predictions_noise.csv")
