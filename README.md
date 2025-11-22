@@ -5,16 +5,18 @@
 This repository contains a Huggingface implementation of the AV-HuBERT (Audio-Visual Hidden Unit BERT) model, specifically trained and tested on the MuAViC (Multilingual Audio-Visual Corpus) dataset. AV-HuBERT is a self-supervised model designed for audio-visual speech recognition, leveraging both audio and visual modalities to achieve robust performance, especially in noisy environments.
 
 
-### Inference code
+### Requirements
 
 ```sh
-git clone https://github.com/nguyenvulebinh/AV-HuBERT-S2S.git
+git clone -b Petar https://github.com/nguyenvulebinh/AV-HuBERT-S2S.git
 cd AV-HuBERT-S2S
 conda create -n avhuberts2s python=3.9
 conda activate avhuberts2s
 pip install -r requirements.txt
 python run_example.py
 ```
+
+### Testing model
 
 ```python
 from src.model.avhubert2text import AV2TextForConditionalGeneration
@@ -65,26 +67,54 @@ if __name__ == "__main__":
     print(tokenizer.batch_decode(output, skip_special_tokens=True))
 ```
 
-### Data preprocessing scripts
+### Pre-train an AV-HuBERT model
 
+Suppose `{train,valid}.tsv` are saved at `/path/to/data`, `{train,valid}.km`
+are saved at `/path/to/labels`, the configuration file is saved at `/path/to/conf/conf-name`, and the label rate is 100Hz.
+
+To train a model, run:
 ```sh
-mkdir model-bin
-cd model-bin
-wget https://huggingface.co/nguyenvulebinh/AV-HuBERT/resolve/main/20words_mean_face.npy .
-wget https://huggingface.co/nguyenvulebinh/AV-HuBERT/resolve/main/shape_predictor_68_face_landmarks.dat .
-
-python src/dataset/video_to_audio_lips.py
+$ cd avhubert
+$ fairseq-hydra-train --config-dir /path/to/conf/ --config-name conf-name \
+  task.data=/path/to/data task.label_dir=/path/to/label \
+  model.label_rate=100 hydra.run.dir=/path/to/experiment/pretrain/ \
+  common.user_dir=`pwd`
 ```
 
-### Pretrained AVSR model
+### Finetune an AV-HuBERT model with Seq2Seq
+Suppose `{train,valid}.tsv` are saved at `/path/to/data`, `{train,valid}.wrd`
+are saved at `/path/to/labels`, the configuration file is saved at `/path/to/conf/conf-name`.
 
-<table align="center">
-    <tr>
-        <th>Languages</th>
-        <th>Huggingface</th>
-    </tr>
-    <tr>
-        <th>English</th>
-        <th><a href="https://huggingface.co/nguyenvulebinh/AV-HuBERT-MuAViC-en">Checkpoint-EN</a></th>
-    </tr>
-</table>
+To fine-tune a pre-trained HuBERT model at `/path/to/checkpoint`, run:
+```sh
+$ cd avhubert
+$ fairseq-hydra-train --config-dir /path/to/conf/ --config-name conf-name \
+  task.data=/path/to/data task.label_dir=/path/to/label \
+  task.tokenizer_bpe_model=/path/to/tokenizer model.w2v_path=/path/to/checkpoint \
+  hydra.run.dir=/path/to/experiment/finetune/ common.user_dir=`pwd`
+```
+
+### Decode an AV-HuBERT model
+Suppose the `test.tsv` and `test.wrd` are the video list and transcripts of
+the split to be decoded, saved at `/path/to/data`, and the fine-tuned model is
+saved at `/path/to/checkpoint`.
+
+#### Seq2Seq decoding
+
+`task.normalize` needs to be consistent with the value used during fine-tuning.
+Decoding results will be saved at
+`/path/to/experiment/decode/s2s/test`.
+
+```sh
+$ cd avhubert
+$ python -B infer_s2s.py --config-dir ./conf/ --config-name conf-name \
+  dataset.gen_subset=test common_eval.path=/path/to/checkpoint \
+  common_eval.results_path=/path/to/experiment/decode/s2s/test \
+  override.modalities=['video'] common.user_dir=`pwd`
+```
+#### Test under noisy environment
+If you want to test your model under noisy environment, append the following to the above command.
+
+`+override.noise_wav=/path/to/noise override.noise_prob=1 override.noise_snr={snr}` 
+
+ `{snr}` is the signal-to-noise ratio (SNR) and `/path/to/noise` is a folder containing noise manifest files (`/path/to/noise/{valid,test}.tsv`). See [`preparation`](avhubert/preparation/) for setting up this folder.
